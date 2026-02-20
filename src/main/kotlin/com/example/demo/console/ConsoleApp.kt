@@ -20,16 +20,23 @@ fun main() {
     val client = ApiClient(baseUrl)
 
     while (true) {
+        if (!client.isAuthenticated()) {
+            println("\nDebes iniciar sesion para continuar.")
+            login(client)
+            continue
+        }
+
         println("\nMenu")
         println("1. Crear comunidad")
         println("2. Crear usuario")
-        println("3. Login")
+        println("3. Login (obtener JWT)")
         println("4. Publicar aviso")
         println("5. Listar avisos")
         println("6. Comentar aviso")
         println("7. Marcar aviso como atendido")
         println("8. Eliminar aviso")
-        println("9. Salir")
+        println("9. Logout")
+        println("10. Salir")
 
         when (prompt("Opcion")) {
             "1" -> createCommunity(client)
@@ -40,7 +47,11 @@ fun main() {
             "6" -> createComment(client)
             "7" -> markAttended(client)
             "8" -> deleteNotice(client)
-            "9" -> return
+            "9" -> {
+                client.clearToken()
+                println("Sesion cerrada.")
+            }
+            "10" -> return
             else -> println("Opcion invalida")
         }
     }
@@ -59,12 +70,14 @@ private fun createUser(client: ApiClient) {
     val communityId = promptLong("Community ID")
     val name = prompt("Nombre")
     val email = prompt("Email")
+    val password = prompt("Password")
     val address = prompt("Direccion")
 
     val body = mapOf(
         "communityId" to communityId,
         "name" to name,
         "email" to email,
+        "password" to password,
         "address" to address,
     )
     val response = client.post("/api/users", body)
@@ -73,11 +86,17 @@ private fun createUser(client: ApiClient) {
 
 private fun login(client: ApiClient) {
     val email = prompt("Email")
-    val address = prompt("Direccion")
+    val password = prompt("Password")
 
-    val body = mapOf("email" to email, "address" to address)
+    val body = mapOf("email" to email, "password" to password)
     val response = client.post("/api/auth/login", body)
     println(response)
+
+    val token = extractToken(response)
+    if (!token.isNullOrBlank()) {
+        client.setToken(token)
+        println("Token guardado para siguientes requests.")
+    }
 }
 
 private fun createNotice(client: ApiClient) {
@@ -140,6 +159,18 @@ private fun deleteNotice(client: ApiClient) {
     println(response)
 }
 
+private fun extractToken(response: String): String? {
+    val idx = response.indexOf("\n")
+    if (idx == -1) return null
+    val body = response.substring(idx + 1)
+    return try {
+        val parsed: Map<String, Any> = mapper.readValue(body)
+        parsed["token"]?.toString()
+    } catch (_: Exception) {
+        null
+    }
+}
+
 private fun prompt(label: String, default: String? = null): String {
     val suffix = if (default == null) ": " else " [$default]: "
     print(label + suffix)
@@ -171,6 +202,17 @@ private class ApiClient(baseUrl: String) {
     private val client = HttpClient.newBuilder()
         .connectTimeout(Duration.ofSeconds(10))
         .build()
+    private var token: String? = null
+
+    fun setToken(value: String) {
+        token = value
+    }
+    
+    fun clearToken() {
+        token = null
+    }
+
+    fun isAuthenticated(): Boolean = !token.isNullOrBlank()
 
     fun get(path: String): String = request("GET", path, null)
 
@@ -186,6 +228,10 @@ private class ApiClient(baseUrl: String) {
             .uri(uri)
             .timeout(Duration.ofSeconds(20))
             .header("Content-Type", "application/json")
+
+        if (!token.isNullOrBlank()) {
+            builder.header("Authorization", "Bearer $token")
+        }
 
         if (body != null) {
             val json = mapper.writeValueAsString(body)

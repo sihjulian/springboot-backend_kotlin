@@ -17,6 +17,9 @@ data class UserCreateRequest(
     @field:Size(max = 120)
     val email: String,
     @field:NotBlank
+    @field:Size(min = 6, max = 100)
+    val password: String,
+    @field:NotBlank
     @field:Size(max = 200)
     val address: String,
 )
@@ -29,6 +32,8 @@ data class UserUpdateRequest(
     @field:Email
     @field:Size(max = 120)
     val email: String,
+    @field:Size(min = 6, max = 100)
+    val password: String? = null,
     @field:NotBlank
     @field:Size(max = 200)
     val address: String,
@@ -39,5 +44,5 @@ data class LoginRequest(
     @field:Email
     val email: String,
     @field:NotBlank
-    val address: String,
+    val password: String,
 )

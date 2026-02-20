@@ -9,11 +9,13 @@ import com.example.demo.model.User
 import com.example.demo.repository.UserRepository
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import org.springframework.security.crypto.password.PasswordEncoder
 
 @Service
 class UserService(
     private val communityService: CommunityService,
     private val userRepository: UserRepository,
+    private val passwordEncoder: PasswordEncoder,
 ) {
     @Transactional
     fun create(request: UserCreateRequest): User {
@@ -28,6 +30,7 @@ class UserService(
             community = community,
             name = request.name.trim(),
             email = normalizedEmail,
+            passwordHash = passwordEncoder.encode(request.password),
             address = request.address.trim(),
         )
         return userRepository.save(user)
@@ -56,6 +59,9 @@ class UserService(
 
         existing.name = request.name.trim()
         existing.email = normalizedEmail
+        if (!request.password.isNullOrBlank()) {
+            existing.passwordHash = passwordEncoder.encode(request.password)
+        }
         existing.address = request.address.trim()
         return userRepository.save(existing)
     }
@@ -73,8 +79,8 @@ class UserService(
         val user = userRepository.findByEmailIgnoreCase(normalizedEmail)
             ?: throw BadRequestException("Invalid email/address")
 
-        if (!user.address.equals(request.address.trim(), ignoreCase = true)) {
-            throw BadRequestException("Invalid email/address")
+        if (!passwordEncoder.matches(request.password, user.passwordHash)) {
+            throw BadRequestException("Invalid email/password")
         }
         return user
     }
