@@ -1,5 +1,6 @@
 package com.example.demo.model
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import jakarta.persistence.*
 import java.time.Instant
 
@@ -9,6 +10,7 @@ import java.time.Instant
     name = "users",
     uniqueConstraints = [UniqueConstraint(columnNames = ["email"])],
 )
+@JsonIgnoreProperties("hibernateLazyInitializer", "handler")
 class User(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

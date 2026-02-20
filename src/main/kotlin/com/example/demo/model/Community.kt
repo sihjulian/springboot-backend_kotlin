@@ -1,11 +1,13 @@
 package com.example.demo.model
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import jakarta.persistence.*
 import java.time.Instant
 
 // Represents a neighborhood community that groups users and notices.
 @Entity
 @Table(name = "communities")
+@JsonIgnoreProperties("hibernateLazyInitializer", "handler")
 class Community(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)

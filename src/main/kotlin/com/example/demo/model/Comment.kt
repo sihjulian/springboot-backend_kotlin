@@ -1,11 +1,13 @@
 package com.example.demo.model
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties
 import jakarta.persistence.*
 import java.time.Instant
 
 // Comment left on a notice by a community member.
 @Entity
 @Table(name = "comments")
+@JsonIgnoreProperties("hibernateLazyInitializer", "handler")
 class Comment(
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
